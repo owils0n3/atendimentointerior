@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atendimentos SUS Offline</title>
+
+  <!-- Configurações para virar App no iPhone / iPad -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ficha SUS" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --border: #e2e8f0;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding-bottom: 60px;
+    }
+
+    /* Cabeçalho */
+    header {
+      background: #0f172a;
+      color: #fff;
+      padding: 18px 16px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+
+    .header-top {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-top h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-online { background: rgba(22, 163, 74, 0.25); color: #86efac; }
+    .status-offline { background: rgba(245, 158, 11, 0.25); color: #fde047; }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 16px auto;
+      padding: 0 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+    }
+
+    /* Destaque da Data do Atendimento */
+    .date-banner {
+      background: #e0f2fe;
+      border: 2px solid #7dd3fc;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .date-banner label {
+      color: #0369a1;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .date-banner small {
+      color: #0284c7;
+      font-size: 0.78rem;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 480px) {
+      .row-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Atalhos de procedimentos */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 6px 11px;
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip:active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Botões */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s;
+    }
+
+    .btn:active { opacity: 0.8; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-outline { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    /* Lista e Grupos de Data */
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .date-group {
+      margin-top: 14px;
+    }
+
+    .date-group-header {
+      background: #e2e8f0;
+      color: #1e293b;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .patient-item {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .patient-info h3 {
+      font-size: 0.98rem;
+      margin-bottom: 4px;
+      color: #0f172a;
+    }
+
+    .patient-meta {
+      font-size: 0.83rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .patient-proc {
+      display: inline-block;
+      margin-top: 6px;
+      background: #f0f9ff;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #334155;
+    }
+
+    .icon-btn.del {
+      color: var(--danger);
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 28px 12px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    /* Toast de aviso */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 99px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      transition: transform 0.25s ease;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Modal de Confirmação */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 200;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: var(--radius);
+      max-width: 380px;
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .modal h3 { margin-bottom: 8px; }
+    .modal p { font-size: 0.9rem; color: var(--muted); margin-bottom: 18px; }
+    .modal-btns { display: flex; gap: 10px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <h1>🦷 Registro SUS Offline</h1>
+      <div id="netStatus" class="status-badge status-online">
+        <span class="dot"></span>
+        <span id="netText">Salvo no Aparelho</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- 1. DATA DO ATENDIMENTO FIXA -->
+    <div class="card date-banner">
+      <label for="dataAtendimento">📅 Data do Atendimento</label>
+      <input type="date" id="dataAtendimento" required />
+      <small>Essa data permanece fixa após salvar cada paciente para você lançar o dia inteiro sem precisar repetir.</small>
+    </div>
+
+    <!-- 2. FORMULÁRIO DO PACIENTE -->
+    <form id="patientForm" class="card">
+      <div class="form-group">
+        <label for="nome">Nome Completo do Paciente *</label>
+        <input type="text" id="nome" placeholder="Ex: Maria de Nazaré Silva" autocomplete="off" required />
+      </div>
+
+      <div class="row-2">
+        <div class="form-group">
+          <label for="cpfSus">CPF ou Cartão SUS *</label>
+          <input type="tel" id="cpfSus" placeholder="Somente números" maxlength="18" autocomplete="off" required />
+        </div>
+
+        <div class="form-group">
+          <label for="nascimento">Data de Nascimento *</label>
+          <input type="tel" id="nascimento" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="procedimento">Procedimento / Dente *</label>
+        <input type="text" id="procedimento" placeholder="Ex: Exodontia dente 36" autocomplete="off" required />
+        <div class="chips">
+          <span class="chip" onclick="addProc('Exodontia ')">+ Exodontia</span>
+          <span class="chip" onclick="addProc('Restauração ')">+ Restauração</span>
+          <span class="chip" onclick="addProc('Profilaxia ')">+ Profilaxia</span>
+          <span class="chip" onclick="addProc('Aplicação de Flúor')">+ Flúor</span>
+          <span class="chip" onclick="addProc('Urgência / Pulpectomia ')">+ Urgência</span>
+          <span class="chip" onclick="addProc('1ª Consulta Odontológica')">+ 1ª Consulta</span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="margin-top: 8px;">
+        ✅ Salvar Paciente na Data Acima
+      </button>
+    </form>
+
+    <!-- 3. EXPORTAÇÃO E LISTAGEM POR DATA -->
+    <div class="card">
+      <div class="filter-bar">
+        <label style="margin:0; font-size:0.95rem;">📋 Pacientes Salvos (<span id="totalCount">0</span>)</label>
+        <select id="filtroData" style="width: auto; padding: 8px 12px; font-size: 0.85rem;">
+          <option value="TODAS">Todas as Datas</option>
+        </select>
+      </div>
+
+      <div class="actions-grid">
+        <button type="button" class="btn btn-success" onclick="exportarCSV()">
+          📥 Baixar Planilha
+        </button>
+        <button type="button" class="btn btn-outline" onclick="copiarParaPlanilha()">
+          📋 Copiar p/ Colar
+        </button>
+      </div>
+
+      <div id="listaPacientes"></div>
+
+      <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px;">
+        <button type="button" class="btn btn-danger" onclick="abrirModalLimpar()">
+          🗑️ Apagar Registros Já Lançados
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast">Salvo com sucesso!</div>
+
+  <!-- Modal Limpar -->
+  <div id="modalConfirm" class="modal-backdrop">
+    <div class="modal">
+      <h3>Apagar registros?</h3>
+      <p id="modalText">Isso apagará os pacientes salvos neste aparelho. Certifique-se de já ter exportado a planilha.</p>
+      <div class="modal-btns">
+        <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmarExclusao()">Apagar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'sus_pacientes_offline_v1';
+    let registros = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+    const inputDataAtend = document.getElementById('dataAtendimento');
+    const inputNome = document.getElementById('nome');
+    const inputCpfSus = document.getElementById('cpfSus');
+    const inputNasc = document.getElementById('nascimento');
+    const inputProc = document.getElementById('procedimento');
+    const filtroData = document.getElementById('filtroData');
+    const listaContainer = document.getElementById('listaPacientes');
+    const totalCount = document.getElementById('totalCount');
+
+    // 1. Define a data de hoje por padrão no fuso local
+    function getHojeISO() {
+      const hoje = new Date();
+      const ano = hoje.getFullYear();
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoje.getDate()).padStart(2, '0');
+      return `${ano}-${mes}-${dia}`;
+    }
+    inputDataAtend.value = getHojeISO();
+
+    // 2. Máscara rápida para Data de Nascimento (DD/MM/AAAA) sem precisar rolar calendário
+    inputNasc.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+      if (v.length >= 5) {
+        v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
+      } else if (v.length >= 3) {
+        v = `${v.slice(0,2)}/${v.slice(2)}`;
+      }
+      e.target.value = v;
+    });
+
+    // 3. Máscara inteligente CPF (11 dígitos) ou Cartão SUS (15 dígitos)
+    inputCpfSus.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 15);
+      if (v.length <= 11) {
+        v = v.replace(/(\d{3})(\d)/, '$1.$2')
+             .replace(/(\d{3})(\d)/, '$1.$2')
+             .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+      } else {
+        v = v.replace(/(\d{3})(\d{4})(\d{4})(\d{1,4})/, '$1 $2 $3 $4');
+      }
+      e.target.value = v;
+    });
+
+    // 4. Botões rápidos de procedimento
+    function addProc(texto) {
+      if (inputProc.value && !inputProc.value.endsWith(' ')) {
+        inputProc.value += ' / ' + texto;
+      } else {
+        inputProc.value += texto;
+      }
+      inputProc.focus();
+    }
+
+    // 5. Formatar Data ISO (YYYY-MM-DD) para BR (DD/MM/AAAA)
+    function formatarDataBR(iso) {
+      if (!iso) return '';
+      const [a, m, d] = iso.split('-');
+      return `${d}/${m}/${a}`;
+    }
+
+    // 6. Salvar Paciente
+    document.getElementById('patientForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      if (inputNasc.value.length < 10) {
+        mostrarToast('⚠️ Digite a data de nascimento completa (DD/MM/AAAA)');
+        inputNasc.focus();
+        return;
+      }
+
+      const novo = {
+        id: Date.now().toString(),
+        dataAtendimento: inputDataAtend.value, // Mantém YYYY-MM-DD para ordenar perfeito
+        nome: inputNome.value.trim(),
+        cpfSus: inputCpfSus.value.trim(),
+        nascimento: inputNasc.value.trim(),
+        procedimento: inputProc.value.trim()
+      };
+
+      registros.push(novo);
+      salvarNoAparelho();
+
+      // Limpa apenas os dados do paciente, MANTENDO a data do atendimento intacta!
+      inputNome.value = '';
+      inputCpfSus.value = '';
+      inputNasc.value = '';
+      inputProc.value = '';
+      inputNome.focus();
+
+      mostrarToast('✅ Paciente salvo na data ' + formatarDataBR(novo.dataAtendimento));
+    });
+
+    function salvarNoAparelho() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+      atualizarFiltroDatas();
+      renderizarLista();
+    }
+
+    // 7. Atualizar seletor de filtro de datas
+    function atualizarFiltroDatas() {
+      const selecaoAtual = filtroData.value;
+      const datasUnicas = [...new Set(registros.map(r => r.dataAtendimento))].sort().reverse();
+
+      filtroData.innerHTML = '<option value="TODAS">Todas as Datas</option>';
+      datasUnicas.forEach(dataISO => {
+        const qtd = registros.filter(r => r.dataAtendimento === dataISO).length;
+        const opt = document.createElement('option');
+        opt.value = dataISO;
+        opt.textContent = `${formatarDataBR(dataISO)} (${qtd})`;
+        filtroData.appendChild(opt);
+      });
+
+      if (datasUnicas.includes(selecaoAtual)) {
+        filtroData.value = selecaoAtual;
+      }
+    }
+
+    filtroData.addEventListener('change', renderizarLista);
+
+    // 8. Renderizar pacientes agrupados por Data do Atendimento
+    function renderizarLista() {
+      const filtro = filtroData.value;
+      const filtrados = filtro === 'TODAS'
+        ? registros
+        : registros.filter(r => r.dataAtendimento === filtro);
+
+      totalCount.textContent = filtrados.length;
+
+      if (filtrados.length === 0) {
+        listaContainer.innerHTML = '<div class="empty-state">Nenhum atendimento registrado ainda.</div>';
+        return;
+      }
+
+      // Agrupar por data de atendimento (da mais recente para a mais antiga)
+      const datas = [...new Set(filtrados.map(r => r.dataAtendimento))].sort().reverse();
+      let html = '';
+
+      datas.forEach(dataISO => {
+        const doDia = filtrados.filter(r => r.dataAtendimento === dataISO);
+        html += `
+          <div class="date-group">
+            <div class="date-group-header">
+              <span>📅 Atendimento em ${formatarDataBR(dataISO)}</span>
+              <span>${doDia.length} pac.</span>
+            </div>
+        `;
+
+        doDia.forEach(p => {
+          html += `
+            <div class="patient-item">
+              <div class="patient-info">
+                <h3>${escapeHTML(p.nome)}</h3>
+                <div class="patient-meta">
+                  <strong>CPF/SUS:</strong> ${escapeHTML(p.cpfSus)} <br/>
+                  <strong>Nasc:</strong> ${escapeHTML(p.nascimento)}
+                </div>
+                <span class="patient-proc">${escapeHTML(p.procedimento)}</span>
+              </div>
+              <div class="item-actions">
+                <button class="icon-btn" onclick="copiarUnico('${p.id}')" title="Copiar linha">Copiar</button>
+                <button class="icon-btn del" onclick="removerPaciente('${p.id}')" title="Excluir">✕</button>
+              </div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+      });
+
+      listaContainer.innerHTML = html;
+    }
+
+    function removerPaciente(id) {
+      registros = registros.filter(r => r.id !== id);
+      salvarNoAparelho();
+      mostrarToast('🗑️ Registro removido');
+    }
+
+    function copiarUnico(id) {
+      const p = registros.find(r => r.id === id);
+      if (!p) return;
+      const texto = `${formatarDataBR(p.dataAtendimento)}\t${p.nome}\t${p.cpfSus}\t${p.nascimento}\t${p.procedimento}`;
+      navigator.clipboard.writeText(texto);
+      mostrarToast('📋 Paciente copiado!');
+    }
+
+    // 9. Exportar Planilha CSV (Respeitando ordem cronológica de datas)
+    function getRegistrosParaExportar() {
+      const filtro = filtroData.value;
+      const lista = filtro === 'TODAS'
+        ? [...registros]
+        : registros.filter(r => r.dataAtendimento === filtro);
+
+      // Ordena por data cronológica (mais antiga -> mais nova)
+      return lista.sort((a, b) => a.dataAtendimento.localeCompare(b.dataAtendimento));
+    }
+
+    function exportarCSV() {
+      const lista = getRegistrosParaExportar();
+      if (lista.length === 0) {
+        mostrarToast('⚠️ Nenhum dado para exportar');
+        return;
+      }
+
+      // Cabeçalho separado por ponto-e-vírgula (padrão Excel Brasil)
+      let csv = '\uFEFFData do Atendimento;Nome do Paciente;CPF ou Cartao SUS;Data de Nascimento;Procedimento\n';
+
+      lista.forEach(p => {
+        const dataBR = formatarDataBR(p.dataAtendimento);
+        const nome = `"${p.nome.replace(/"/g, '""')}"`;
+        const doc = `"${p.cpfSus}"`;
+        const nasc = `"${p.nascimento}"`;
+        const proc = `"${p.procedimento.replace(/"/g, '""')}"`;
+        csv += `${dataBR};${nome};${doc};${nasc};${proc}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const sufixo = filtroData.value === 'TODAS' ? 'todas-as-datas' : filtroData.value;
+      a.href = url;
+      a.download = `atendimentos-sus-${sufixo}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      mostrarToast('📥 Planilha gerada com sucesso!');
+    }
+
+    // 10. Copiar tudo formatado para colar direto no Excel / Google Planilhas
+    function copiarParaPlanilha() {
+      const lista = getRegistrosParaExportar();
+      if (lista.length === 0) {
+        mostrarToast('⚠️ Nenhum dado para copiar');
+        return;
+      }
+
+      let tsv = 'Data do Atendimento\tNome do Paciente\tCPF / SUS\tData de Nascimento\tProcedimento\n';
+      lista.forEach(p => {
+        tsv += `${formatarDataBR(p.dataAtendimento)}\t${p.nome}\t${p.cpfSus}\t${p.nascimento}\t${p.procedimento}\n`;
+      });
+
+      navigator.clipboard.writeText(tsv).then(() => {
+        mostrarToast('📋 Copiado! Só dar Ctrl+V na planilha');
+      });
+    }
+
+    // 11. Modal de Limpeza (respeita se o usuário está filtrando só um dia ou todos)
+    function abrirModalLimpar() {
+      if (registros.length === 0) {
+        mostrarToast('A lista já está vazia.');
+        return;
+      }
+      const filtro = filtroData.value;
+      const txt = document.getElementById('modalText');
+      if (filtro === 'TODAS') {
+        txt.textContent = 'Isso apagará TODOS os pacientes salvos no aparelho. Certifique-se de já ter baixado a planilha.';
+      } else {
+        txt.textContent = `Isso apagará apenas os pacientes do dia ${formatarDataBR(filtro)}.`;
+      }
+      document.getElementById('modalConfirm').classList.add('active');
+    }
+
+    function fecharModal() {
+      document.getElementById('modalConfirm').classList.remove('active');
+    }
+
+    function confirmarExclusao() {
+      const filtro = filtroData.value;
+      if (filtro === 'TODAS') {
+        registros = [];
+      } else {
+        registros = registros.filter(r => r.dataAtendimento !== filtro);
+        filtroData.value = 'TODAS';
+      }
+      salvarNoAparelho();
+      fecharModal();
+      mostrarToast('🗑️ Registros apagados com sucesso');
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag]));
+    }
+
+    let toastTimer;
+    function mostrarToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // Status de conexão visual
+    function atualizarStatusRede() {
+      const badge = document.getElementById('netStatus');
+      const txt = document.getElementById('netText');
+      if (navigator.onLine) {
+        badge.className = 'status-badge status-online';
+        txt.textContent = 'Online • Salvo no Aparelho';
+      } else {
+        badge.className = 'status-badge status-offline';
+        txt.textContent = 'Modo Offline Ativo';
+      }
+    }
+    window.addEventListener('online', atualizarStatusRede);
+    window.addEventListener('offline', atualizarStatusRede);
+
+    // Registro do Service Worker para abrir mesmo sem sinal no interior
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    // Inicializar
+    atualizarStatusRede();
+    atualizarFiltroDatas();
+    renderizarLista();
+  </script>
+</body>
+</html>
