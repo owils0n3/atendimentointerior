@@ -363,7 +363,7 @@
           <input type="text" id="inputNome" placeholder="Ex: Maria de Nazaré Silva" />
         </div>
 
-        <!-- 4 & 5. CPF e Cartão SUS com Rótulos Limpos -->
+        <!-- 4 & 5. CPF e Cartão SUS -->
         <div class="grid-2 form-group">
           <div>
             <label>CPF</label>
@@ -383,18 +383,19 @@
           </div>
           <div>
             <label>Procedimento / Dente</label>
-            <input type="text" id="inputProcedimento" placeholder="Ex: Exodontia dente 36" />
+            <input type="text" id="inputProcedimento" placeholder="Ex: Exodontia do elemento 36" />
           </div>
         </div>
 
-        <!-- Chips com suporte a múltiplos procedimentos acumulados -->
+        <!-- Chips ordenados conforme solicitado -->
         <div class="quick-chips">
-          <div class="chip" onclick="adicionarProc('Exodontia dente ')">+ Exodontia</div>
-          <div class="chip" onclick="adicionarProc('Restauração resina dente ')">+ Restauração</div>
-          <div class="chip" onclick="adicionarProc('Profilaxia / Raspagem')">+ Profilaxia</div>
+          <div class="chip" onclick="adicionarProc('Restauração classe ')">+ Restauração</div>
+          <div class="chip" onclick="adicionarProc('Exodontia do elemento ')">+ Exodontia</div>
+          <div class="chip" onclick="adicionarProc('Profilaxia')">+ Profilaxia</div>
+          <div class="chip" onclick="adicionarProc('Raspagem supra e subgengival')">+ Raspagem</div>
           <div class="chip" onclick="adicionarProc('Aplicação tópica de flúor')">+ Flúor</div>
-          <div class="chip" onclick="adicionarProc('Atendimento de Urgência')">+ Urgência</div>
-          <div class="chip" onclick="adicionarProc('Consulta odontológica primeira vez')">+ 1ª Consulta</div>
+          <div class="chip" onclick="adicionarProc('1ª consulta')">+ 1ª consulta</div>
+          <div class="chip" onclick="adicionarProc('Consulta de retorno')">+ Retorno</div>
         </div>
 
         <div style="margin-top: 16px;">
@@ -478,7 +479,6 @@
           v = `${v.slice(0,3)}.${v.slice(3)}`;
         }
       } else {
-        // Formatação leve ao apagar para não travar o cursor
         if (v.length > 9) {
           v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
         } else if (v.length > 6) {
