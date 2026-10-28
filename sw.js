@@ -1,10 +1,9 @@
-const CACHE_NAME = 'sus-offline-v4';
+const CACHE_NAME = 'sus-offline-v5';
 const ASSETS = [
   './index.html',
   './'
 ];
 
-// Instalação do Service Worker e cache dos recursos essenciais
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -14,7 +13,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Ativação e limpeza de caches antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -30,7 +28,6 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Interceptação de pedidos para servir sempre offline com prioridade local
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
@@ -38,7 +35,6 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
       return fetch(event.request).catch(() => {
-        // Fallback de segurança caso falhe e não esteja no cache
         return caches.match('./index.html');
       });
     })
