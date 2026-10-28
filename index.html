@@ -363,14 +363,14 @@
           <input type="text" id="inputNome" placeholder="Ex: Maria de Nazaré Silva" />
         </div>
 
-        <!-- 4 & 5. CPF e Cartão SUS com Regra de Numeração Automática -->
+        <!-- 4 & 5. CPF e Cartão SUS com Rótulos Limpos -->
         <div class="grid-2 form-group">
           <div>
-            <label>CPF (000.000.000-00)</label>
+            <label>CPF</label>
             <input type="tel" id="inputCpf" placeholder="000.000.000-00" maxlength="14" inputmode="numeric" />
           </div>
           <div>
-            <label>Cartão SUS (000 0000 0000 0000)</label>
+            <label>Cartão SUS</label>
             <input type="tel" id="inputSus" placeholder="000 0000 0000 0000" maxlength="19" inputmode="numeric" />
           </div>
         </div>
@@ -436,7 +436,7 @@
       });
     }
 
-    const STORAGE_KEY = 'rocha_batista_sus_offline_v4';
+    const STORAGE_KEY = 'rocha_batista_sus_offline_v5';
 
     let estado = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
       pacientes: []
@@ -444,6 +444,10 @@
 
     const hojeStr = new Date().toISOString().split('T')[0];
     document.getElementById('dataAtendimento').value = hojeStr;
+
+    // Variável para controlar o tamanho anterior e detetar Backspace
+    let ultimoTamanhoCpf = 0;
+    let ultimoTamanhoSus = 0;
 
     // Máscara Nascimento (DD/MM/AAAA)
     const inputNasc = document.getElementById('inputNascimento');
@@ -457,30 +461,53 @@
       e.target.value = v;
     });
 
-    // Máscara CPF (000.000.000-00)
+    // Máscara CPF (000.000.000-00) com suporte a apagar
     const inputCpf = document.getElementById('inputCpf');
     inputCpf.addEventListener('input', (e) => {
-      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-      if (v.length > 9) {
-        v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
-      } else if (v.length > 6) {
-        v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
-      } else if (v.length > 3) {
-        v = `${v.slice(0,3)}.${v.slice(3)}`;
+      let valAtual = e.target.value;
+      let apagando = valAtual.length < ultimoTamanhoCpf;
+      ultimoTamanhoCpf = valAtual.length;
+
+      let v = valAtual.replace(/\D/g, '').slice(0, 11);
+      if (!apagando) {
+        if (v.length > 9) {
+          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
+        } else if (v.length > 6) {
+          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+        } else if (v.length > 3) {
+          v = `${v.slice(0,3)}.${v.slice(3)}`;
+        }
+      } else {
+        // Formatação leve ao apagar para não travar o cursor
+        if (v.length > 9) {
+          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
+        } else if (v.length > 6) {
+          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+        } else if (v.length > 3) {
+          v = `${v.slice(0,3)}.${v.slice(3)}`;
+        }
       }
       e.target.value = v;
+      ultimoTamanhoCpf = e.target.value.length;
     });
 
-    // Máscara Cartão SUS (000 0000 0000 0000)
+    // Máscara Cartão SUS (000 0000 0000 0000) com suporte livre para apagar
     const inputSus = document.getElementById('inputSus');
     inputSus.addEventListener('input', (e) => {
-      let v = e.target.value.replace(/\D/g, '').slice(0, 15);
+      let valAtual = e.target.value;
+      let apagando = valAtual.length < ultimoTamanhoSus;
+      ultimoTamanhoSus = valAtual.length;
+
+      let v = valAtual.replace(/\D/g, '').slice(0, 15);
       let formatted = '';
+      
       if (v.length > 0) formatted += v.slice(0, 3);
-      if (v.length >= 3) formatted += ' ' + v.slice(3, 7);
-      if (v.length >= 7) formatted += ' ' + v.slice(7, 11);
-      if (v.length >= 11) formatted += ' ' + v.slice(11, 15);
+      if (v.length >= 4) formatted += ' ' + v.slice(3, 7);
+      if (v.length >= 8) formatted += ' ' + v.slice(7, 11);
+      if (v.length >= 12) formatted += ' ' + v.slice(11, 15);
+
       e.target.value = formatted;
+      ultimoTamanhoSus = e.target.value.length;
     });
 
     // Função de múltiplos procedimentos acumulados com "+"
