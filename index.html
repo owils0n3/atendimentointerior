@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="SUS Offline" />
   <meta name="theme-color" content="#F2F2F7" />
 
-  <!-- Logo embutida para o ícone do Atalho no iOS (Funciona Offline) -->
+  <!-- Logo embutida para o ícone do Atalho no iOS -->
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%230A84FF'/%3E%3Ctext x='50%25' y='54%25' font-size='260' text-anchor='middle' dominant-baseline='middle'%3E🦷%3C/text%3E%3C/svg%3E">
 
   <style>
@@ -328,8 +328,8 @@
           <span>Clínica / Interior</span>
           <h1>🦷 Registro SUS Offline</h1>
         </div>
-        <div class="status-badge">
-          🟢 Salvo no Aparelho
+        <div class="status-badge" id="statusNet">
+          🟢 100% Offline Ativo
         </div>
       </div>
     </div>
@@ -337,7 +337,7 @@
 
   <div class="container">
 
-    <!-- FORMULÁRIO DE CADASTRO NA ORDEM SOLICITADA -->
+    <!-- FORMULÁRIO DE CADASTRO -->
     <div class="ios-card">
       <div class="card-header">
         <span class="card-title">📝 Novo Atendimento</span>
@@ -363,15 +363,15 @@
           <input type="text" id="inputNome" placeholder="Ex: Maria de Nazaré Silva" />
         </div>
 
-        <!-- 4 & 5. CPF e Cartão SUS (Teclado numérico) -->
+        <!-- 4 & 5. CPF e Cartão SUS com Regra de Numeração Automática -->
         <div class="grid-2 form-group">
           <div>
-            <label>CPF</label>
-            <input type="tel" id="inputCpf" placeholder="Somente números" inputmode="numeric" />
+            <label>CPF (000.000.000-00)</label>
+            <input type="tel" id="inputCpf" placeholder="000.000.000-00" maxlength="14" inputmode="numeric" />
           </div>
           <div>
-            <label>Cartão SUS</label>
-            <input type="tel" id="inputSus" placeholder="Somente números" inputmode="numeric" />
+            <label>Cartão SUS (000 0000 0000 0000)</label>
+            <input type="tel" id="inputSus" placeholder="000 0000 0000 0000" maxlength="19" inputmode="numeric" />
           </div>
         </div>
 
@@ -387,13 +387,14 @@
           </div>
         </div>
 
+        <!-- Chips com suporte a múltiplos procedimentos acumulados -->
         <div class="quick-chips">
-          <div class="chip" onclick="preencherProc('Exodontia dente ')">+ Exodontia</div>
-          <div class="chip" onclick="preencherProc('Restauração resina dente ')">+ Restauração</div>
-          <div class="chip" onclick="preencherProc('Profilaxia / Raspagem')">+ Profilaxia</div>
-          <div class="chip" onclick="preencherProc('Aplicação tópica de flúor')">+ Flúor</div>
-          <div class="chip" onclick="preencherProc('Atendimento de Urgência')">+ Urgência</div>
-          <div class="chip" onclick="preencherProc('Consulta odontológica primeira vez')">+ 1ª Consulta</div>
+          <div class="chip" onclick="adicionarProc('Exodontia dente ')">+ Exodontia</div>
+          <div class="chip" onclick="adicionarProc('Restauração resina dente ')">+ Restauração</div>
+          <div class="chip" onclick="adicionarProc('Profilaxia / Raspagem')">+ Profilaxia</div>
+          <div class="chip" onclick="adicionarProc('Aplicação tópica de flúor')">+ Flúor</div>
+          <div class="chip" onclick="adicionarProc('Atendimento de Urgência')">+ Urgência</div>
+          <div class="chip" onclick="adicionarProc('Consulta odontológica primeira vez')">+ 1ª Consulta</div>
         </div>
 
         <div style="margin-top: 16px;">
@@ -426,7 +427,16 @@
   <div id="toast">Salvo!</div>
 
   <script>
-    const STORAGE_KEY = 'rocha_batista_sus_offline_v3';
+    // Registro do Service Worker para cache e uso offline instantâneo
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+
+    const STORAGE_KEY = 'rocha_batista_sus_offline_v4';
 
     let estado = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
       pacientes: []
@@ -435,6 +445,7 @@
     const hojeStr = new Date().toISOString().split('T')[0];
     document.getElementById('dataAtendimento').value = hojeStr;
 
+    // Máscara Nascimento (DD/MM/AAAA)
     const inputNasc = document.getElementById('inputNascimento');
     inputNasc.addEventListener('input', (e) => {
       let v = e.target.value.replace(/\D/g, '').slice(0, 8);
@@ -446,14 +457,47 @@
       e.target.value = v;
     });
 
+    // Máscara CPF (000.000.000-00)
+    const inputCpf = document.getElementById('inputCpf');
+    inputCpf.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 9) {
+        v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
+      } else if (v.length > 6) {
+        v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+      } else if (v.length > 3) {
+        v = `${v.slice(0,3)}.${v.slice(3)}`;
+      }
+      e.target.value = v;
+    });
+
+    // Máscara Cartão SUS (000 0000 0000 0000)
+    const inputSus = document.getElementById('inputSus');
+    inputSus.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 15);
+      let formatted = '';
+      if (v.length > 0) formatted += v.slice(0, 3);
+      if (v.length >= 3) formatted += ' ' + v.slice(3, 7);
+      if (v.length >= 7) formatted += ' ' + v.slice(7, 11);
+      if (v.length >= 11) formatted += ' ' + v.slice(11, 15);
+      e.target.value = formatted;
+    });
+
+    // Função de múltiplos procedimentos acumulados com "+"
+    function adicionarProc(textoChip) {
+      const campo = document.getElementById('inputProcedimento');
+      let atual = campo.value.trim();
+      if (atual === '') {
+        campo.value = textoChip;
+      } else {
+        campo.value = atual + ' + ' + textoChip;
+      }
+      campo.focus();
+    }
+
     function salvarNoAparelho() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
       renderizarPacientes();
-    }
-
-    function preencherProc(texto) {
-      document.getElementById('inputProcedimento').value = texto;
-      document.getElementById('inputProcedimento').focus();
     }
 
     function salvarPaciente(e) {
