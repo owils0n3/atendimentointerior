@@ -387,7 +387,7 @@
           </div>
         </div>
 
-        <!-- Chips ordenados conforme solicitado -->
+        <!-- Chips ordenados -->
         <div class="quick-chips">
           <div class="chip" onclick="adicionarProc('Restauração classe ')">+ Restauração</div>
           <div class="chip" onclick="adicionarProc('Exodontia do elemento ')">+ Exodontia</div>
@@ -418,8 +418,8 @@
       </div>
 
       <div class="grid-2" style="margin-top: 14px;">
-        <button class="btn btn-success" onclick="baixarPlanilhaCSV()">📥 Baixar Planilha CSV</button>
-        <button class="btn btn-outline" onclick="copiarParaColar()">📋 Copiar p/ Colar</button>
+        <button class="btn btn-success" onclick="baixarPlanilhaCSV()">📥 Abrir Planilha (CSV)</button>
+        <button class="btn btn-outline" onclick="copiarParaColar()">📋 Copiar p/ Planilhas</button>
       </div>
     </div>
 
@@ -428,7 +428,6 @@
   <div id="toast">Salvo!</div>
 
   <script>
-    // Registro do Service Worker para cache e uso offline instantâneo
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => {
@@ -446,11 +445,9 @@
     const hojeStr = new Date().toISOString().split('T')[0];
     document.getElementById('dataAtendimento').value = hojeStr;
 
-    // Variável para controlar o tamanho anterior e detetar Backspace
     let ultimoTamanhoCpf = 0;
     let ultimoTamanhoSus = 0;
 
-    // Máscara Nascimento (DD/MM/AAAA)
     const inputNasc = document.getElementById('inputNascimento');
     inputNasc.addEventListener('input', (e) => {
       let v = e.target.value.replace(/\D/g, '').slice(0, 8);
@@ -462,7 +459,6 @@
       e.target.value = v;
     });
 
-    // Máscara CPF (000.000.000-00) com suporte a apagar
     const inputCpf = document.getElementById('inputCpf');
     inputCpf.addEventListener('input', (e) => {
       let valAtual = e.target.value;
@@ -470,32 +466,20 @@
       ultimoTamanhoCpf = valAtual.length;
 
       let v = valAtual.replace(/\D/g, '').slice(0, 11);
-      if (!apagando) {
-        if (v.length > 9) {
-          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
-        } else if (v.length > 6) {
-          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
-        } else if (v.length > 3) {
-          v = `${v.slice(0,3)}.${v.slice(3)}`;
-        }
-      } else {
-        if (v.length > 9) {
-          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
-        } else if (v.length > 6) {
-          v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
-        } else if (v.length > 3) {
-          v = `${v.slice(0,3)}.${v.slice(3)}`;
-        }
+      if (v.length > 9) {
+        v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
+      } else if (v.length > 6) {
+        v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+      } else if (v.length > 3) {
+        v = `${v.slice(0,3)}.${v.slice(3)}`;
       }
       e.target.value = v;
       ultimoTamanhoCpf = e.target.value.length;
     });
 
-    // Máscara Cartão SUS (000 0000 0000 0000) com suporte livre para apagar
     const inputSus = document.getElementById('inputSus');
     inputSus.addEventListener('input', (e) => {
       let valAtual = e.target.value;
-      let apagando = valAtual.length < ultimoTamanhoSus;
       ultimoTamanhoSus = valAtual.length;
 
       let v = valAtual.replace(/\D/g, '').slice(0, 15);
@@ -510,7 +494,6 @@
       ultimoTamanhoSus = e.target.value.length;
     });
 
-    // Função de múltiplos procedimentos acumulados com "+"
     function adicionarProc(textoChip) {
       const campo = document.getElementById('inputProcedimento');
       let atual = campo.value.trim();
@@ -612,46 +595,91 @@
       `).join('');
     }
 
-    function baixarPlanilhaCSV() {
+    // ============================================================================
+    // CORREÇÃO CRÍTICA DO IPAD: EXPORTAÇÃO CSV + WEB SHARE API
+    // ============================================================================
+    async function baixarPlanilhaCSV() {
       if (estado.pacientes.length === 0) {
         mostrarToast('⚠️ Nenhum paciente para exportar');
         return;
       }
 
-      let csv = '\uFEFFNome;CPF;SUS;DataNascimento;Procedimento;Comunidade;DataAtendimento\n';
-      estado.pacientes.forEach(p => {
-        csv += `"${p.nome}";"${p.cpf}";"${p.sus}";"${p.nascimento}";"${p.procedimento}";"${p.comunidade}";"${formatarDataBR(p.dataAtendimento)}"\n`;
-      });
+      const colunas = [
+        "Nome",
+        "CPF",
+        "Cartão SUS",
+        "Data Nascimento",
+        "Procedimento",
+        "Comunidade",
+        "Data Atendimento"
+      ];
 
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      // Sanitiza aspas e envolve cada valor em aspas duplas
+      const linhas = estado.pacientes.map(p => [
+        `"${(p.nome || '').replace(/"/g, '""')}"`,
+        `"${(p.cpf || '').replace(/"/g, '""')}"`,
+        `"${(p.sus || '').replace(/"/g, '""')}"`,
+        `"${(p.nascimento || '').replace(/"/g, '""')}"`,
+        `"${(p.procedimento || '').replace(/"/g, '""')}"`,
+        `"${(p.comunidade || '').replace(/"/g, '""')}"`,
+        `"${formatarDataBR(p.dataAtendimento)}"`
+      ].join(';'));
+
+      // Cabeçalho com BOM UTF-8 (\uFEFF) e quebras de linha Windows/Excel (\r\n)
+      const conteudoCSV = '\uFEFF' + colunas.join(';') + '\r\n' + linhas.join('\r\n') + '\r\n';
+      const nomeArquivo = `registro_sus_${new Date().toISOString().split('T')[0]}.csv`;
+      const blob = new Blob([conteudoCSV], { type: 'text/csv;charset=utf-8;' });
+
+      // 1. Tenta abrir a Folha de Compartilhamento Nativa do iPadOS (Web Share API)
+      try {
+        const arquivo = new File([blob], nomeArquivo, { type: 'text/csv;charset=utf-8;' });
+        if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+          await navigator.share({
+            files: [arquivo],
+            title: 'Registro SUS Offline',
+            text: 'Exportação de atendimentos'
+          });
+          mostrarToast('📤 Selecione Planilhas, Drive ou Salvar em Arquivos');
+          return;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // Usuário fechou o menu
+      }
+
+      // 2. Fallback obrigatório anexado ao DOM para evitar bloqueio no Safari
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `registro_sus_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = nomeArquivo;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
+
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
+
       mostrarToast('📥 Planilha baixada!');
     }
 
+    // ============================================================================
+    // SEGUNDO MÉTODO PARA O IPAD: CÓPIA DIRETA PARA CÉLULAS (TSV TABULADO)
+    // ============================================================================
     function copiarParaColar() {
       if (estado.pacientes.length === 0) {
         mostrarToast('⚠️ Nenhum paciente para copiar');
         return;
       }
 
-      let texto = '';
-      estado.pacientes.forEach((p, idx) => {
-        texto += `--- Paciente ${idx + 1} ---\n`;
-        texto += `Nome: ${p.nome}\n`;
-        texto += `CPF: ${p.cpf}\n`;
-        texto += `SUS: ${p.sus}\n`;
-        texto += `Nascimento: ${p.nascimento}\n`;
-        texto += `Procedimento: ${p.procedimento}\n`;
-        if (p.comunidade) texto += `Comunidade: ${p.comunidade}\n`;
-        texto += `\n`;
+      // Formato com tabulações (\t) que o Google Planilhas no iPad cola diretamente em colunas separadas
+      let tsv = 'Nome\tCPF\tCartão SUS\tData Nascimento\tProcedimento\tComunidade\tData Atendimento\r\n';
+      estado.pacientes.forEach(p => {
+        tsv += `${p.nome || ''}\t${p.cpf || ''}\t${p.sus || ''}\t${p.nascimento || ''}\t${p.procedimento || ''}\t${p.comunidade || ''}\t${formatarDataBR(p.dataAtendimento)}\r\n`;
       });
 
-      navigator.clipboard.writeText(texto).then(() => {
-        mostrarToast('📋 Dados copiados para a área de transferência!');
+      navigator.clipboard.writeText(tsv).then(() => {
+        mostrarToast('📋 Copiado! No Google Planilhas, selecione uma célula e toque em Colar');
       }).catch(() => {
         mostrarToast('❌ Erro ao copiar');
       });
@@ -668,7 +696,7 @@
       const t = document.getElementById('toast');
       t.textContent = msg; t.classList.add('show');
       clearTimeout(toastT);
-      toastT = setTimeout(() => t.classList.remove('show'), 2600);
+      toastT = setTimeout(() => t.classList.remove('show'), 2800);
     }
 
     renderizarPacientes();
