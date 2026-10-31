@@ -1,14 +1,14 @@
-// Mudamos para v6 para forçar o iPad a baixar o novo código e a biblioteca Excel
-const CACHE_NAME = 'sus-offline-v6';
+// Mudamos para v7 para forçar o iPad a baixar a correção do botão Excel
+const CACHE_NAME = 'sus-offline-v7';
 
-// Adicionamos a biblioteca SheetJS na lista de downloads offline
+// Arquivos e bibliotecas que precisam ser guardados no iPad
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
 
-// Instalação: Baixa os arquivos e a biblioteca para a memória do iPad
+// Instalação: Baixa os arquivos novos
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Ativação: Limpa os caches de código antigos (v5, v4) mas mantém seus dados salvos
+// Ativação: Limpa os caches de código antigos (v6, v5) sem tocar nos pacientes
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -32,7 +32,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Interceptação: Serve os arquivos mesmo sem internet
+// Interceptação: Serve os arquivos salvos quando você estiver offline
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
