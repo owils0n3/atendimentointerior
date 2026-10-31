@@ -354,14 +354,12 @@
       const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const nomeArquivo = `atendimentos_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-      // 4. Compartilhamento iOS (Web Share API)
+      // 4. Compartilhamento iOS (Web Share API) corrigido
       try {
         const arquivo = new File([blob], nomeArquivo, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
           await navigator.share({
-            files: [arquivo],
-            title: 'Atendimentos Odontológicos',
-            text: 'Planilha exportada'
+            files: [arquivo] // Apenas o arquivo, sem texto extra para o iOS não gerar o .txt
           });
           return;
         }
